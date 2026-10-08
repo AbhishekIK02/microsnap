@@ -1,10 +1,8 @@
 import json
 
+import streamlit as st
 from google import genai
 from google.genai import types
-
-import streamlit as st
-
 from twilio.rest import Client as TwilioClient
 
 from prompts import (
@@ -23,8 +21,6 @@ GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 TWILIO_ACCOUNT_SID = st.secrets["TWILIO_ACCOUNT_SID"]
 TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
 TWILIO_CONTENT_SID = st.secrets["TWILIO_CONTENT_SID"]
-
-# WhatsApp number registered with Twilio
 TWILIO_WHATSAPP_FROM = st.secrets["TWILIO_WHATSAPP_FROM"]
 
 
@@ -34,7 +30,9 @@ TWILIO_WHATSAPP_FROM = st.secrets["TWILIO_WHATSAPP_FROM"]
 
 @st.cache_resource
 def get_gemini_client():
-    return genai.Client(api_key=GEMINI_API_KEY)
+    return genai.Client(
+        api_key=GEMINI_API_KEY
+    )
 
 
 @st.cache_resource
@@ -45,8 +43,8 @@ def get_twilio_client():
     )
 
 
-twilio_client = get_twilio_client()
 gemini_client = get_gemini_client()
+twilio_client = get_twilio_client()
 
 
 # ============================================================
@@ -61,12 +59,16 @@ MODEL_NAME = "gemini-3.7-flash"
 # ============================================================
 
 def clean_whatsapp_text(text):
+
     if not text:
         return "No nutrition summary available."
 
     text = " ".join(text.split())
 
-    return text[:1500] + "..." if len(text) > 1500 else text
+    if len(text) > 1500:
+        return text[:1500] + "..."
+
+    return text
 
 
 # ============================================================
@@ -160,13 +162,17 @@ def ask_gemini(parts):
 
     try:
 
-        response = st.session_state.chat.send_message(parts)
+        response = st.session_state.chat.send_message(
+            parts
+        )
 
         return response.text
 
     except Exception as error:
 
-        return f"Sorry, something went wrong: {error}"
+        return (
+            f"Sorry, something went wrong: {error}"
+        )
 
 
 # ============================================================
@@ -205,10 +211,14 @@ if "onboarded" not in st.session_state:
 
     if submitted:
 
-        if not name.strip() or not whatsapp_number.strip():
+        if (
+            not name.strip()
+            or not whatsapp_number.strip()
+        ):
 
             st.warning(
-                "Please fill in both your name and WhatsApp number to proceed."
+                "Please fill in both your name and "
+                "WhatsApp number to proceed."
             )
 
         else:
@@ -219,7 +229,7 @@ if "onboarded" not in st.session_state:
                 whatsapp_number.strip()
             )
 
-            # Activate Gemini chat
+            # Create Gemini chat
             st.session_state.chat = (
                 gemini_client.chats.create(
                     model=MODEL_NAME,
@@ -372,7 +382,7 @@ if user_input:
 
         photo_bytes = photo.getvalue()
 
-        # Display uploaded image in chat
+        # Display uploaded image
         add_message(
             "user",
             "image",
@@ -419,11 +429,20 @@ if user_input:
     # ASK GEMINI
     # --------------------------------------------------------
 
-    with st.spinner(
-        "Crunching the numbers..."
-    ):
+    if parts:
 
-        answer = ask_gemini(parts)
+        with st.spinner(
+            "Crunching the numbers..."
+        ):
+
+            answer = ask_gemini(parts)
+
+    else:
+
+        answer = (
+            "Please enter a question or upload "
+            "a meal photo."
+        )
 
 
     # --------------------------------------------------------
