@@ -1,6 +1,8 @@
 import json
+
 from google import genai
 from google.genai import types
+
 import streamlit as st
 
 from twilio.rest import Client as TwilioClient
@@ -39,7 +41,7 @@ def get_gemini_client():
 def get_twilio_client():
     return TwilioClient(
         TWILIO_ACCOUNT_SID,
-        TWILIO_AUTH_TOKEN
+        TWILIO_AUTH_TOKEN,
     )
 
 
@@ -47,8 +49,10 @@ twilio_client = get_twilio_client()
 gemini_client = get_gemini_client()
 
 
-# IMPORTANT:
-# Make sure this is a model available to your Gemini API account.
+# ============================================================
+# GEMINI MODEL
+# ============================================================
+
 MODEL_NAME = "gemini-3.7-flash"
 
 
@@ -70,13 +74,15 @@ def clean_whatsapp_text(text):
 # ============================================================
 
 def send_whatsapp(to_number, user_name, summary):
+
     try:
+
         content_variables = json.dumps(
             {
                 "1": user_name,
-                "2": clean_whatsapp_text(summary)
+                "2": clean_whatsapp_text(summary),
             },
-            ensure_ascii=False
+            ensure_ascii=False,
         )
 
         message = twilio_client.messages.create(
@@ -89,6 +95,7 @@ def send_whatsapp(to_number, user_name, summary):
         return True, message.sid
 
     except Exception as error:
+
         return False, str(error)
 
 
@@ -108,7 +115,7 @@ def render_message(message):
 
             st.image(
                 message["content"],
-                use_container_width=True
+                use_container_width=True,
             )
 
         elif message["kind"] == "audio":
@@ -136,7 +143,7 @@ def add_message(role, kind, content):
         {
             "role": role,
             "kind": kind,
-            "content": content
+            "content": content,
         }
     )
 
@@ -147,12 +154,6 @@ def add_message(role, kind, content):
 
 # ============================================================
 # GEMINI FUNCTION
-# ============================================================
-# FIX:
-# Your original code defined "add_gemini()"
-# but later called "ask_gemini()".
-#
-# We renamed it to "ask_gemini()" so the NameError is fixed.
 # ============================================================
 
 def ask_gemini(parts):
@@ -243,7 +244,7 @@ if "onboarded" not in st.session_state:
 
 header_col, button_col = st.columns(
     [5, 2],
-    vertical_alignment="center"
+    vertical_alignment="center",
 )
 
 
@@ -269,14 +270,13 @@ with button_col:
     if st.button(
         "📤 Send to WhatsApp",
         disabled=send_disabled,
-        use_container_width=True
+        use_container_width=True,
     ):
 
         with st.spinner(
             "Summarizing your day..."
         ):
 
-            # FIXED: ask_gemini now exists
             summary = ask_gemini(
                 [SUMMARY_REQUEST_PROMPT]
             )
@@ -284,7 +284,7 @@ with button_col:
         success, info = send_whatsapp(
             st.session_state.whatsapp_number,
             st.session_state.name,
-            summary
+            summary,
         )
 
         if success:
@@ -322,7 +322,7 @@ if not st.session_state.messages:
         "text",
         WELCOME_MESSAGE_TEMPLATE.format(
             name=st.session_state.name
-        )
+        ),
     )
 
 else:
@@ -342,7 +342,7 @@ user_input = st.chat_input(
     file_type=[
         "jpg",
         "jpeg",
-        "png"
+        "png",
     ],
 )
 
@@ -376,14 +376,14 @@ if user_input:
         add_message(
             "user",
             "image",
-            photo_bytes
+            photo_bytes,
         )
 
         # Send image to Gemini
         parts.append(
             types.Part.from_bytes(
                 data=photo_bytes,
-                mime_type=photo.type
+                mime_type=photo.type,
             )
         )
 
@@ -397,7 +397,7 @@ if user_input:
         add_message(
             "user",
             "text",
-            text
+            text,
         )
 
         parts.append(text)
@@ -423,7 +423,6 @@ if user_input:
         "Crunching the numbers..."
     ):
 
-        # FIXED: ask_gemini is now defined above
         answer = ask_gemini(parts)
 
 
@@ -434,5 +433,5 @@ if user_input:
     add_message(
         "assistant",
         "text",
-        answer
+        answer,
     )
